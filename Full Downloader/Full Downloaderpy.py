@@ -47,13 +47,13 @@ class YoutubeDownloadWindow(tk.Tk):
             downloaded = data['downloaded_bytes']
 
             total = data['total_bytes']  if data.get('total_bytes' ,None) else data['total_bytes_estimate']
-            percentage = downloaded / total * 100
-            percentage = round(percentage, 2)
+            self.percentage = downloaded / total * 100
+            self.percentage = round(self.percentage, 2)
            
-            self.progress_bar["value"] =  percentage
+            self.progress_bar["value"] =  self.percentage
             self.progress_bar.update()
             
-            self.style.configure('text.Horizontal.TProgressbar', text=f'%{percentage}')
+            self.style.configure('text.Horizontal.TProgressbar', text=f'%{self.percentage}')
             self.progress_bar.place(x=170,y=340)
     #___________________________________progress_bar_downloading_______________________#
     
@@ -94,6 +94,9 @@ class YoutubeDownloadWindow(tk.Tk):
          return {
             'format': f"{format}+bestaudio",
             'merge_output_format': 'mkv' ,
+            'quiet': True,
+            'no_warnings': True,
+            'progress':True,
             'progress_hooks': [self.progress_hook],
             'outtmpl': os.path.join(
                 download_folder, '%(title)s-%(format)s.%(ext)s'
@@ -118,11 +121,10 @@ class YoutubeDownloadWindow(tk.Tk):
 
     def download_video(self):
         # Retrieve the string from the entry fields
-        
-        
         youtube_url = self.url_field.get()
         download_folder = self.des_field.get()
         Basic_link="https://"
+        Not_Basic_Link="https://youtube.com/playlist"
         # Check if the entry fields are not empty
         if self.url_field.get()=="":
             messagebox.showerror("Empty Field", "Enter Link....")
@@ -137,12 +139,23 @@ class YoutubeDownloadWindow(tk.Tk):
             
         elif Basic_link not in self.url_field.get():
             messagebox.showerror("Error", "Invalid Link....")
+            self.des_field.delete(0,1000)
+            self.url_field.delete(0,1000)
+            self.resolutions_fields.configure(state="normal")
+            self.download_video_button.configure(state="disabled")
             self.status.configure(text="Erorr , PLease check again...")
         
-        else:
-           
+        elif Not_Basic_Link  in self.url_field.get():
+            messagebox.showerror("Error", "This Link Is Playlist Link Make Sure To Put In his Field....")
+            self.des_field.delete(0,1000)
+            self.url_field.delete(0,1000)
+            self.url_playlist_field.delete(0,1000)
+            self.resolutions_fields.configure(state="normal")
+            self.download_video_button.configure(state="disabled")
+            self.status.configure(text="Erorr , PLease check again...")
             
-            # Set up options for youtube-dl
+        else:
+           if  self.pause_downloading:
             ydl_opts = self.setup_ydl_opts()
 
             # Download the video
@@ -176,7 +189,9 @@ class YoutubeDownloadWindow(tk.Tk):
 #####       
     
     def down_sound(self):
+        self.pause=False
         Basic_link="https://"
+        Not_Basic_Link="https://youtube.com/playlist"
         if self.url_sound_field.get()=="":
             messagebox.showerror("Empty Field", "Enter Link....")
             self.status.configure(text="Erorr , PLease check again...")
@@ -190,16 +205,33 @@ class YoutubeDownloadWindow(tk.Tk):
             
         elif Basic_link not in self.url_sound_field.get():
             messagebox.showerror("Error", "Invalid Link....")
+            self.des_field.delete(0,1000)
+            self.url_field.delete(0,1000)
+            self.url_sound_field.delete(0,1000)
+            self.download_music_button.configure(state="disabled")
+            self.status.configure(text="Erorr , PLease check again...")
+            
+        elif Not_Basic_Link  in self.url_sound_field.get():
+            messagebox.showerror("Error", "This Link Is Playlist Link Make Sure To Put In his Field....")
+            self.des_field.delete(0,1000)
+            self.url_field.delete(0,1000)
+            self.url_sound_field.delete(0,1000)
+            self.download_music_button.configure(state="disabled")
             self.status.configure(text="Erorr , PLease check again...")
         
         else:
+         if  self.pause_downloading:
           URLS =f'{self.url_sound_field.get()}'
           info_dict = yt_dlp.YoutubeDL().extract_info(url=self.url_sound_field.get(), download=False)
           self.get_sound_information=info_dict.get("title")
+          self.status.configure(text=f"{self.get_sound_information}")
           download_folder = self.des_field.get()
           sound_format=self.bitrat_fields.get().replace("kbps","")
           ydl_opts = {
           'format': 'bestaudio/best',
+          'quiet': True,
+          'no_warnings': True,
+          'progress':True,
           'progress_hooks': [self.progress_hook],
           'postprocessors': [{
           'key': 'FFmpegExtractAudio',
@@ -208,7 +240,7 @@ class YoutubeDownloadWindow(tk.Tk):
            }],
            'outtmpl':os.path.join(download_folder,f'{"%(title)s-%(format)s.%(ext)s"}'),
            }  
-    
+         
           with yt_dlp.YoutubeDL(ydl_opts) as ydl:
            download_sound = ydl.download(URLS)
            messagebox.showinfo("Congratulations","Sound Downloaded Successfully...")
@@ -220,6 +252,8 @@ class YoutubeDownloadWindow(tk.Tk):
            self.url_field.delete(0,1000)
            self.resolutions_fields.delete(0,1000)
            self.progress_bar.place(x=170,y=500)
+        
+       
 ##################
 ##########   #download Sound#
 #####        
@@ -232,43 +266,60 @@ class YoutubeDownloadWindow(tk.Tk):
    
     def down_playlist(self):
         global home_directory
-        Basic_link="https://"
+        download_folder = self.des_field.get()
+        Basic_link="https://youtube.com/playlist?list"
+        Not_Basic_Link="https://youtu.be/"
         # Check if the entry fields are not empty
         if self.url_playlist_field.get()=="":
             messagebox.showerror("Empty Field", "Enter Link....")
             self.status.configure(text="Erorr , PLease check again...")
+        
+        elif Not_Basic_Link  in self.url_playlist_field.get():
+            messagebox.showerror("Error", "This Link Is Youtube Link Make Sure To Put In his Field....")
+            self.des_field.delete(0,1000)
+            self.url_playlist_field.delete(0,1000)
+            self.download_playist_button.configure(state="disabled")
+            self.status.configure(text="Erorr , PLease check again...")
             
         elif Basic_link not in self.url_playlist_field.get():
-            messagebox.showerror("Error", "Invalid Link....")
+            messagebox.showerror("Error", "Invalid Link...")
+            self.des_field.delete(0,1000)
+            self.url_playlist_field.delete(0,1000)
+            self.download_playist_button.configure(state="disabled")
             self.status.configure(text="Erorr , PLease check again...")
 
-        else: 
-            if self.playlist_type_fields.get()=="mp4":
-             playlist_info = yt_dlp.YoutubeDL().extract_info(f'{self.url_playlist_field.get()}', download=False)
-             playlist_title = playlist_info.get('title', None)
-             self.status.config(text=f"Downloading {playlist_title}......")
-             playlist_opts = {
-            'format': f'{"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"}',
-            'outtmpl': f'{home_directory}//Desktop//{playlist_title}//{"%(title)s.%(ext)s"}',
-            'playlist': True,
-            'progress_hooks': [self.progress_hook],
-            'video-multistreams ':True,
-             }
-            elif self.playlist_type_fields.get()=="mp3":
-             playlist_info = yt_dlp.YoutubeDL().extract_info(f'{self.url_playlist_field.get()}', download=False)
-             playlist_title = playlist_info.get('title', None)
-             self.status.config(text=f"Downloading {playlist_title}......")
-             playlist_opts = {
-            'format': f'{"bestaudio/best[ext=mp3]"}',
-            'outtmpl': f'{home_directory}//Desktop//{playlist_title}//{"%(title)s"}.mp3',
-            'playlist': True,
-            'progress_hooks': [self.progress_hook],
-            'audio-multistreams ':True,
-             }
-               
-            while True and not self.stop_downloading:
+        elif Basic_link  in self.url_playlist_field.get():
+            if  self.pause_downloading:
+             if self.playlist_type_fields.get()=="mp4":
+              playlist_info = yt_dlp.YoutubeDL().extract_info(f'{self.url_playlist_field.get()}', download=False)
+              playlist_title = playlist_info.get('title', None)
+              self.status.config(text=f"Downloading {playlist_title}......")
+              playlist_opts = {
+             'format': f'{"bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"}',
+             'outtmpl': f'{download_folder}//{"%(title)s.%(ext)s"}',
+             'playlist': True,
+             'quiet': True,
+             'no_warnings': True,
+             'progress':True,
+             'progress_hooks': [self.progress_hook],
+             'video-multistreams ':True,
+              }
+             elif self.playlist_type_fields.get()=="mp3":
+              playlist_info = yt_dlp.YoutubeDL().extract_info(f'{self.url_playlist_field.get()}', download=False)
+              playlist_title = playlist_info.get('title', None)
+              self.status.config(text=f"Downloading {playlist_title}......")
+              playlist_opts = {
+             'format': f'{"bestaudio/best[ext=mp3]"}',
+             'outtmpl': f'{download_folder}//{"%(title)s"}.mp3',
+             'playlist': True,
+             'quiet': True,
+             'no_warnings': True,
+             'progress':True,
+             'progress_hooks': [self.progress_hook],
+             'audio-multistreams ':True,
+              }
+            
              with yt_dlp.YoutubeDL(playlist_opts) as ydl:
-              self.stop_downloading=True
               playlist_info = yt_dlp.YoutubeDL().extract_info(f'{self.url_playlist_field.get()}', download=False)
               playlist_title = playlist_info.get('title', None)        
               ydl.download([f'{self.url_playlist_field.get()}']) 
@@ -281,7 +332,7 @@ class YoutubeDownloadWindow(tk.Tk):
               self.url_field.delete(0,1000)
               self.resolutions_fields.delete(0,1000)
               self.progress_bar.place(x=170,y=500)
-              break
+
 ##################
 ##########   #download Playlist#
 #####     
@@ -292,16 +343,24 @@ class YoutubeDownloadWindow(tk.Tk):
 ##########   #Call Functions#
 #####     
     def browse_folder(self):
+        self.status.configure(text=f"State : Ready")
+        self.resolutions_fields.delete(0,1000)
+        self.download_music_button.configure(state="disabled")
+        self.download_playist_button.configure(state="disabled")
+        self.download_video_button.configure(state="disabled")
         self.des_field.delete(0,1000)
         download_path = filedialog.askdirectory(initialdir = "Desktop", title = "Select the folder to save the video")  
         self.des_field.insert(0,download_path)
         youtube_link="https://youtu.be"
         if self.url_field.get()!="" and youtube_link in self.url_field.get() :
             self.download_video_button.configure(state="normal")
+            self.resolutions_fields.configure(state="normal")
             download_thread = threading.Thread(target=self.get_ready)
             download_thread.start()
         elif self.url_sound_field.get()!="":
-            self.download_music_button.configure(state="normal")
+            self.download_music_button.configure(state="normal")   
+        elif self.url_playlist_field.get()!="":
+            self.download_playist_button.configure(state="normal")
         elif self.url_field.get()!="" and youtube_link not in self.url_field.get() :
             self.download_video_button.configure(state="normal")
             self.resolutions_fields.configure(state="disabled")
@@ -310,7 +369,9 @@ class YoutubeDownloadWindow(tk.Tk):
         download_thread = threading.Thread(target=self.download_video)
         if  download_thread.start():
          self.progress_bar.place(x=170,y=340)
-         self.status.configure(text="Downloading......")
+         self.status.configure(text="Downloading Please Wait....")
+        elif not self.pause_downloading:
+            messagebox.showinfo("Enable","Unlock Downloading Key First...")
         else:
             self.progress_bar.place(x=170,y=500)
             return ""
@@ -319,7 +380,9 @@ class YoutubeDownloadWindow(tk.Tk):
         download_thread = threading.Thread(target=self.down_sound)
         if  download_thread.start():
          self.progress_bar.place(x=170,y=340)
-         self.status.configure(text="Downloading......")
+         self.status.configure(text=f"{self.get_sound_information}")
+        elif not self.pause_downloading:
+            messagebox.showinfo("Enable",f"Unlock Downloading Key First...")
         else:
             self.progress_bar.place(x=170,y=500)
             return ""
@@ -328,7 +391,9 @@ class YoutubeDownloadWindow(tk.Tk):
         download_thread = threading.Thread(target=self.down_playlist)
         if  download_thread.start():
          self.progress_bar.place(x=170,y=340)
-         self.status.configure(text="Downloading......")
+         self.status.configure(text="Downloading Please Wait....")
+        elif not self.pause_downloading:
+            messagebox.showinfo("Enable","Unlock Downloading Key First...")
         else:
             self.progress_bar.place(x=170,y=500)
             return ""
@@ -341,21 +406,30 @@ class YoutubeDownloadWindow(tk.Tk):
         self.url_field.delete(0,1000)
     
     def cancel_down(self):
-        if self.stop_downloading :
-         self.stop_downloading=False
-         self.status.config(text=f"Downloading Stoped....")
-         messagebox.showinfo("Downloading Manager","Downloading has been stopped...")
-         os._exit(0)
+        self.status.config(text=f"Closing Program Goodbye....")
+        messagebox.showinfo("Downloading Manager","Downloading has been stopped\nThanks For Using Our Program..")
+        os._exit(0)
      
      
     def about_program(self):
         messagebox.showinfo("About Program","""Note:\n1) Download Video: Input Any Link Of Any Video From Any Platform You Want , Choose Your LOcation To Save And Wait For (1) Second To Load Video Qualities Then, Choose Your Qulaity And Click Download.\n
 2) Download Sound: Input Any Link Of Any Sound From Any Platform You Want , Choose Your LOcation To Save And Your Bitrat Then Click Download .\n
-3) Download Playlist: Input Any Link Of Any Playlist From Any Platform You Want , Choose Your Playlist Type , Then Click Download  (Dont Choose Location).'""")
+3) Download Playlist: Input Any Link Of Any Playlist From Any Platform You Want , Choose Your Playlist Type , Then Click Download  (Choose Location).'""")
     
     def git_hub(self):
         webbrowser.open("https://github.com/KILLER-RAMADAN")
-               
+        
+        
+        
+    def stop_download(self):
+        if not self.pause_downloading:
+            self.pause_downloading=True
+            self.lock_button.configure(image=self.img5)
+        else:
+            self.pause_downloading=False
+            self.lock_button.configure(image=self.img6)
+            
+                                                       
 ##################
 ##########   #Call Functions#
 #####  
@@ -368,8 +442,7 @@ class YoutubeDownloadWindow(tk.Tk):
     def __init__(self):
         super().__init__()
         
-        self.stop_downloading=False
-        
+        self.pause_downloading=False
         
         # To Access At Any Desktop #
         global home_directory 
@@ -398,7 +471,9 @@ class YoutubeDownloadWindow(tk.Tk):
         
         self.img4=tk.PhotoImage(file="images//github.png")
         
+        self.img5=tk.PhotoImage(file="images//unlock.png")
     
+        self.img6=tk.PhotoImage(file="images//lock.png")
         # configuring the icon of the window  
         self.iconbitmap("images//download.ico") 
         
@@ -487,6 +562,8 @@ class YoutubeDownloadWindow(tk.Tk):
             anchor=tk.SE
         )
         playlist_type_label.place(x=370,y=208)
+        
+ 
         
         
         #______________________________________ All Text Labels __________________________________# 
@@ -615,7 +692,8 @@ class YoutubeDownloadWindow(tk.Tk):
             width = 15,  
             font = ("arial", "10"),  
             bg = "red",  
-            fg = "white",  
+            fg = "white", 
+            state="disabled", 
             activebackground = "red",  
             relief = tk.GROOVE,  
             command = self.download_Playlist_thread
@@ -634,19 +712,6 @@ class YoutubeDownloadWindow(tk.Tk):
             command = self.browse_folder  
             )  
         self.browse_button.place(x=370,y=252)
-        
-        
-        self.Cancel_button = tk.Button(   
-            text = "Cancel Download",  
-            width = 0,  
-            bg = "white",  
-            fg = "#FFFFFF", 
-            image=self.img2 ,
-            bd=0,
-            relief = tk.GROOVE,  
-            command = self.cancel_down  
-            )  
-        self.Cancel_button.place(x=520,y=300)
         
         
         about_button = tk.Button(   
@@ -670,11 +735,26 @@ class YoutubeDownloadWindow(tk.Tk):
             command = self.git_hub
             )  
         about_git_hub.place(x=45,y=3)
+        
+        
+        self.lock_button = tk.Button(   
+            text = "pause",  
+            width = 0,  
+            bg = "white",  
+            bd=0,
+            relief = tk.GROOVE,  
+            command = self.stop_download
+            )  
+        self.lock_button.place(x=520,y=294)
+        
+        self.lock_button.configure(image=self.img6)
        
         self.status = tk.Label(self,text="State : Ready",width=0,fg="black",anchor="w",background="white",
                                font="arial 10 ",bd=1,relief="ridge")
         self.status.place(x=0,y=362,relwidth=1)
-
+        
+        
+        
         # __________________________________ All Buttons _____________________________#
 ##################
 ##########   # Main Window #
