@@ -169,7 +169,7 @@ class YoutubeDownloadWindow(tk.Tk):
              info_dict = ydl.extract_info(self.url_field.get(), download=False)
              
             # self.style.configure('text.Horizontal.TProgressbar', text='Downloaded Successfully..')
-            self.status.configure(text=f"downloaded successfully Enjoy.....{info_dict.get('title')}")
+            self.status.configure(text=f"Video downloaded successfully in {self.des_field.get()}")
             self.download_video_button.configure(state="disabled")
             self.resolutions_fields.configure(state="normal")
             self.des_field.delete(0,1000)
@@ -244,7 +244,7 @@ class YoutubeDownloadWindow(tk.Tk):
           with yt_dlp.YoutubeDL(ydl_opts) as ydl:
            download_sound = ydl.download(URLS)
            messagebox.showinfo("Congratulations","Sound Downloaded Successfully...")
-           self.status.config(text=f"Successfully Downloading Sound {self.get_sound_information}......")
+           self.status.config(text=f"Successfully Downloading Sound in {self.des_field.get()}......")
            self.download_music_button.config(state="disabled")
            self.des_field.delete(0,1000)
            self.url_playlist_field.delete(0,1000)
@@ -324,7 +324,7 @@ class YoutubeDownloadWindow(tk.Tk):
               playlist_title = playlist_info.get('title', None)        
               ydl.download([f'{self.url_playlist_field.get()}']) 
               messagebox.showinfo("Congratulations","Sound Downloaded Successfully...")
-              self.status.config(text=f"Playlist Successfully Downloading {playlist_title}......")
+              self.status.config(text=f"Playlist Successfully Downloading in {self.des_field.get()}......")
               self.download_playist_button.config(state="normal")
               self.des_field.delete(0,1000)
               self.url_playlist_field.delete(0,1000)
@@ -366,35 +366,41 @@ class YoutubeDownloadWindow(tk.Tk):
             self.resolutions_fields.configure(state="disabled")
         
     def download_video_thread(self):
-        download_thread = threading.Thread(target=self.download_video)
-        if  download_thread.start():
-         self.progress_bar.place(x=170,y=340)
-         self.status.configure(text="Downloading Please Wait....")
-        elif not self.pause_downloading:
-            messagebox.showinfo("Enable","Unlock Downloading Key First...")
+        if not self.pause_downloading:
+            messagebox.showinfo("Download Manager","Unlock Lock Key.... ")
         else:
+         webbrowser.open(self.url_field.get())
+         download_thread = threading.Thread(target=self.download_video)
+         if  download_thread.start():
+          self.progress_bar.place(x=170,y=340)
+          self.status.configure(text="Downloading Please Wait....")
+         else:
             self.progress_bar.place(x=170,y=500)
             return ""
     
     def download_Sound_thread(self):
-        download_thread = threading.Thread(target=self.down_sound)
-        if  download_thread.start():
-         self.progress_bar.place(x=170,y=340)
-         self.status.configure(text=f"{self.get_sound_information}")
-        elif not self.pause_downloading:
-            messagebox.showinfo("Enable",f"Unlock Downloading Key First...")
+        if not self.pause_downloading:
+            messagebox.showinfo("Download Manager","Unlock Lock Key.... ")
         else:
+         webbrowser.open(self.url_sound_field.get())
+         download_thread = threading.Thread(target=self.down_sound)
+         if  download_thread.start():
+          self.progress_bar.place(x=170,y=340)
+          self.status.configure(text=f"{self.get_sound_information}")
+         else:
             self.progress_bar.place(x=170,y=500)
             return ""
         
     def download_Playlist_thread(self):
-        download_thread = threading.Thread(target=self.down_playlist)
-        if  download_thread.start():
-         self.progress_bar.place(x=170,y=340)
-         self.status.configure(text="Downloading Please Wait....")
-        elif not self.pause_downloading:
-            messagebox.showinfo("Enable","Unlock Downloading Key First...")
+        if not self.pause_downloading:
+            messagebox.showinfo("Download Manager","Unlock Lock Key.... ")
         else:
+         webbrowser.open(self.url_playlist_field.get())
+         download_thread = threading.Thread(target=self.down_playlist)
+         if  download_thread.start():
+          self.progress_bar.place(x=170,y=340)
+          self.status.configure(text="Downloading Please Wait....")
+         else:
             self.progress_bar.place(x=170,y=500)
             return ""
         
