@@ -9,12 +9,14 @@ import yt_dlp
 import webbrowser
 
 
+
 class YoutubeDownloadWindow(tk.Tk):
     
     #___________________________________get res from youtube video_______________________#
     def get_unique_resolutions(self, inf_dict):
        youtube_link="https://youtu.be" 
-       if youtube_link in self.url_field.get():  
+       short_link="https://youtube.com/shorts/" 
+       if youtube_link in self.url_field.get() or short_link in self.url_field.get() :  
         resolutions = {}
         for format in inf_dict['formats']:
             if re.match(r'^\d+p', format['format_note']) :
@@ -53,7 +55,8 @@ class YoutubeDownloadWindow(tk.Tk):
             self.progress_bar.update()
             
             self.style.configure('text.Horizontal.TProgressbar', text=f'%{self.percentage}')
-            self.progress_bar.place(x=220,y=355)
+            self.progress_bar.place(x=220,y=365)
+            self.download_type_label.place(x=3,y=365)
     #___________________________________progress_bar_downloading_______________________#
     
     
@@ -97,6 +100,7 @@ class YoutubeDownloadWindow(tk.Tk):
             'no_warnings': True,
             'progress':True,
             'progress_hooks': [self.progress_hook],
+            "external_downloader_args": ['-loglevel', 'panic'],
             'outtmpl': os.path.join(
                 download_folder, '%(title)s-%(format)s.%(ext)s'
             ),
@@ -112,9 +116,8 @@ class YoutubeDownloadWindow(tk.Tk):
              'c': 'TVHTML5',
              'cver': '6.20180913',
             'progress_hooks': [self.progress_hook],
-            'outtmpl': os.path.join(
-                download_folder, '%(title)s.%(ext)s'
-            ),
+            "external_downloader_args": ['-loglevel', 'panic'],
+            'outtmpl': os.path.join(download_folder, '%(title)s.%(ext)s'),
             }
             
 
@@ -178,6 +181,7 @@ class YoutubeDownloadWindow(tk.Tk):
             self.url_field.delete(0,1000)
             self.resolutions_fields.set("")
             self.progress_bar.place(x=170,y=500)
+            self.download_type_label.place(x=170,y=500)
 ##################
 ##########   #download video#
 #####       
@@ -227,12 +231,13 @@ class YoutubeDownloadWindow(tk.Tk):
           self.status.configure(text=f"{self.get_sound_information}")
           download_folder = self.des_field.get()
           sound_format=self.bitrat_fields.get().replace("kbps","")
-          ydl_opts = {
+          ydl_opts1 = {
           'format': 'bestaudio/best',
           'quiet': True,
           'no_warnings': True,
           'progress':True,
           'progress_hooks': [self.progress_hook],
+          "external_downloader_args": ['-loglevel', 'panic'],
           'postprocessors': [{
           'key': 'FFmpegExtractAudio',
           'preferredcodec': 'mp3',
@@ -241,8 +246,8 @@ class YoutubeDownloadWindow(tk.Tk):
            'outtmpl':os.path.join(download_folder,f'{"%(title)s-%(format)s.%(ext)s"}'),
            }  
          
-          with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-           download_sound = ydl.download(URLS)
+          with yt_dlp.YoutubeDL(ydl_opts1) as ydl:
+           download_sound = ydl.download(self.url_sound_field.get())
            messagebox.showinfo("Congratulations",f"Sound Downloaded Successfully..{self.get_sound_information}")
            self.status.config(text=f"Successfully Downloading Sound in {self.des_field.get()}......")
            self.download_music_button.config(state="disabled")
@@ -252,6 +257,7 @@ class YoutubeDownloadWindow(tk.Tk):
            self.url_field.delete(0,1000)
            self.resolutions_fields.delete(0,1000)
            self.progress_bar.place(x=170,y=500)
+           self.download_type_label.place(x=170,y=500)
         
        
 ##################
@@ -302,6 +308,7 @@ class YoutubeDownloadWindow(tk.Tk):
              'no_warnings': True,
              'progress':True,
              'progress_hooks': [self.progress_hook],
+             "external_downloader_args": ['-loglevel', 'panic'],
              'video-multistreams ':True,
               }
              elif self.playlist_type_fields.get()=="mp3":
@@ -316,6 +323,7 @@ class YoutubeDownloadWindow(tk.Tk):
              'no_warnings': True,
              'progress':True,
              'progress_hooks': [self.progress_hook],
+             "external_downloader_args": ['-loglevel', 'panic'],
              'audio-multistreams ':True,
               }
             
@@ -332,6 +340,7 @@ class YoutubeDownloadWindow(tk.Tk):
               self.url_field.delete(0,1000)
               self.resolutions_fields.delete(0,1000)
               self.progress_bar.place(x=170,y=500)
+              self.download_type_label.place(x=170,y=500)
 
 ##################
 ##########   #download Playlist#
@@ -352,7 +361,8 @@ class YoutubeDownloadWindow(tk.Tk):
         download_path = filedialog.askdirectory(initialdir = "Desktop", title = "Select the folder to save the video")  
         self.des_field.insert(0,download_path)
         youtube_link="https://youtu.be"
-        if self.url_field.get()!="" and youtube_link in self.url_field.get() :
+        short_link="https://youtube.com/shorts/" 
+        if self.url_field.get()!="" and (youtube_link in self.url_field.get() or short_link in self.url_field.get()) :
             self.download_video_button.configure(state="normal")
             self.resolutions_fields.configure(state="normal")
             download_thread = threading.Thread(target=self.get_ready)
@@ -366,22 +376,28 @@ class YoutubeDownloadWindow(tk.Tk):
             self.resolutions_fields.configure(state="disabled")
         
     def download_video_thread(self):
+        basic="https://"
         if not self.pause_downloading:
             messagebox.showinfo("Download Manager","Unlock Lock Key.... ")
-        else:
-         webbrowser.open(self.url_field.get())
-         download_thread = threading.Thread(target=self.download_video)
-         if  download_thread.start():
-          self.progress_bar.place(x=170,y=340)
-          self.status.configure(text="Downloading Please Wait....")
-         else:
+        elif basic not in self.url_field.get():
+             messagebox.showerror("Error","Invalid Link....")
+        elif basic  in self.url_field.get():
+          webbrowser.open(self.url_field.get())
+          download_thread = threading.Thread(target=self.download_video)
+          if download_thread.start():
+            self.progress_bar.place(x=170,y=340)
+            self.status.configure(text="Downloading Please Wait....")
+          else:
             self.progress_bar.place(x=170,y=500)
             return ""
     
     def download_Sound_thread(self):
+        basic="https://"
         if not self.pause_downloading:
             messagebox.showinfo("Download Manager","Unlock Lock Key.... ")
-        else:
+        elif basic not in self.url_sound_field.get():
+            messagebox.showerror("Error","Invalid Link....")
+        elif basic in self.url_sound_field.get():
          webbrowser.open(self.url_sound_field.get())
          download_thread = threading.Thread(target=self.down_sound)
          if  download_thread.start():
@@ -392,9 +408,12 @@ class YoutubeDownloadWindow(tk.Tk):
             return ""
         
     def download_Playlist_thread(self):
+        basic="https://"
         if not self.pause_downloading:
             messagebox.showinfo("Download Manager","Unlock Lock Key.... ")
-        else:
+        elif basic not in self.url_playlist_field.get():
+            messagebox.showerror("Error","Invalid Link....")
+        elif basic in self.url_playlist_field.get():
          webbrowser.open(self.url_playlist_field.get())
          download_thread = threading.Thread(target=self.down_playlist)
          if  download_thread.start():
@@ -424,6 +443,10 @@ class YoutubeDownloadWindow(tk.Tk):
     
     def git_hub(self):
         webbrowser.open("https://github.com/KILLER-RAMADAN")
+
+    def about_me(self):
+        messagebox.showinfo("Hello Im Ahmed Ramadan","Aouther;Ahmed Rmadan\nVersion;1.0\nDeveloped By Me Dont Worry.")
+        
         
         
         
@@ -434,6 +457,37 @@ class YoutubeDownloadWindow(tk.Tk):
         else:
             self.pause_downloading=False
             self.lock_button.configure(image=self.img6)
+            
+    def black_color(self):
+        self.configure(bg="#1f1f1f")  
+        self.header_label.configure(bg="#1f1f1f",fg="white")
+        self.header_frame.configure(bg="white")
+        self.url_label.configure(bg="#1f1f1f",fg="white")
+        self.url_playlist_label.configure(bg="#1f1f1f",fg="white")
+        self.url_sound_label.configure(bg="#1f1f1f",fg="white")
+        self.des_label.configure(bg="#1f1f1f",fg="white")
+        self.resolutions_label.configure(bg="#1f1f1f",fg="white")
+        self.sound_bitrat_label.configure(bg="#1f1f1f",fg="white")
+        self.playlist_type_label.configure(bg="#1f1f1f",fg="white")
+        self.lock_button.configure(bg="#1f1f1f")
+        self.status.configure(bg="#1f1f1f",fg="white")
+        self.progress_bar.configure(bg="#1f1f1f",fg="white")
+        self.download_type_label.configure(bg="#1f1f1f",fg="white")
+    def white_color(self):
+        self.configure(bg="white") 
+        self.header_label.configure(bg="white",fg="black")
+        self.header_frame.configure(bg="black")
+        self.url_label.configure(bg="white",fg="black")
+        self.url_playlist_label.configure(bg="white",fg="black")
+        self.url_sound_label.configure(bg="white",fg="black")
+        self.des_label.configure(bg="white",fg="black")
+        self.resolutions_label.configure(bg="white",fg="black")
+        self.sound_bitrat_label.configure(bg="white",fg="black")
+        self.playlist_type_label.configure(bg="white",fg="black")
+        self.lock_button.configure(bg="white")
+        self.status.configure(bg="white",fg="black") 
+        self.progress_bar.configure(bg="white",fg="black")
+        self.download_type_label.configure(bg="white",fg="black")
             
                                                        
 ##################
@@ -457,22 +511,21 @@ class YoutubeDownloadWindow(tk.Tk):
         #______________________________________ Main Window _________________________________ 
         
         # setting the title of the window  
-        self.title("Full Downloader Access By Ahmed Ramadan")  
+        self.title("⚡Downloader With Full Access⚡")
+        
     
         # setting the size and position of the window  
-        self.geometry("700x400+420+200")  
+        self.geometry("700x431+420+200")  
+        
+        
     
         # disabling the resizable option for better UI  
-        self.resizable(0, 0)  
-        
+       
+        self.resizable(0,0) 
         self.attributes("-topmost",True)
+        self.configure(bg="white")  
         # configuring the background color of the window  
-        self.config(bg = "white")  
-        
-        self.img1=tk.PhotoImage(file="images//download2.png")
-        
-        self.img2=tk.PhotoImage(file="images//loss.png")
-        
+                  
         self.img3=tk.PhotoImage(file="images//about.png")
         
         self.img4=tk.PhotoImage(file="images//git.png")
@@ -480,24 +533,40 @@ class YoutubeDownloadWindow(tk.Tk):
         self.img5=tk.PhotoImage(file="images//unlock.png")
     
         self.img6=tk.PhotoImage(file="images//lock.png")
+        
+        self.img7=tk.PhotoImage(file="images//theme.png")
         # configuring the icon of the window  
         self.iconbitmap("images//download.ico") 
+        
+        self.menu = tk.Menu(self)
+        self.configure(menu=self.menu)
+        
+        m1 = tk.Menu(self.menu,background="white",activebackground="black")
+        self.menu.add_cascade(label="Help",menu=m1)
+        m1.add_command(label="developed by",command=self.about_me,image=self.img3,compound="left")
+        m1.add_command(label="About Programe",command=self.about_program,image=self.img3,compound="left")
+        m1.add_command(label="My GitHub",command=self.git_hub,image=self.img4,compound="left")
+        m2 = tk.Menu(self.menu,background="white",tearoff=True,bd=0,activebackground="black")
+        self.menu.add_cascade(label="Theme",menu=m2)
+        m2.add_command(label="Light",command=self.white_color,image=self.img7,compound="left")
+        m2.add_command(label="Dark",command=self.black_color,image=self.img7,compound="left")
+        self.menu.add_cascade(label="Exit",command=self.destroy)
         
         #______________________________________ Main Window _________________________________ 
  
     
         #______________________________________ All Text Labels __________________________________# 
-        header_frame=tk.Frame(width=1000,height=40,bg="grey")
-        header_frame.place(x=0,y=0)
+        self.header_frame=tk.Frame(width=100000,height=1,bg="black")
+        self.header_frame.place(x=0,y=35)
         
-        # header_label = tk.Label(  
+        self.header_label = tk.Label(  
              
-        #     text = "Full Access Downloader",  
-        #     font = ("arial", "20", "bold"),  
-        #     bg = "grey",  
+            text = "⚡Downloader With Full Access⚡",  
+            font = ("arial", "15", "bold"),  
+            bg = "white",  
 
-        #     )  
-        # header_label.place(x=170,y=0)
+            )  
+        self.header_label.place(x=170,y=0)
         
         # header_img_label = tk.Label(  
         #     bg="white", 
@@ -506,71 +575,81 @@ class YoutubeDownloadWindow(tk.Tk):
         #     )  
         # header_img_label.place(x=425,y=0)
         
-        url_label = tk.Label(  
+        self.url_label = tk.Label(  
             text = "Video URL:",  
             font = ("arial", "15"),  
             bg = "white",  
             fg = "#000000",  
             )  
-        url_label.place(x=0,y=50)
+        self.url_label.place(x=0,y=50)
         
         
-        url_sound_label = tk.Label(  
+        self.url_sound_label = tk.Label(  
             text = "Sound URL:",  
             font = ("arial", "15"),  
             bg = "white",  
             fg = "#000000",  
             )  
-        url_sound_label.place(x=0,y=125)
+        self.url_sound_label.place(x=0,y=125)
         
         
         
-        url_playlist_label = tk.Label(  
+        self.url_playlist_label = tk.Label(  
             text = "Playlist URL:",  
             font = ("arial", "15"),  
             bg = "white",  
             fg = "#000000",  
             )  
-        url_playlist_label.place(x=0,y=200)
+        self.url_playlist_label.place(x=0,y=200)
         
-        des_label = tk.Label(  
+        self.des_label = tk.Label(  
             text = "Destination:",  
             font = ("arial", "15"),  
             bg = "white",  
             fg = "#000000",  
             anchor = tk.SE  
             )  
-        des_label.place(x=0,y=250)
+        self.des_label.place(x=0,y=260)
         
-        resolutions_label = tk.Label(
+        self.resolutions_label = tk.Label(
             text="Resolutions:",
             font=("verdana", "12"),
             bg="white",
             fg="#000000",
          
         )
-        resolutions_label.place(x=470,y=56)
+        self.resolutions_label.place(x=470,y=56)
         
         
         
-        sound_bitrat_label = tk.Label(
+        self.sound_bitrat_label = tk.Label(
             text="Sound Bitrat:",
             font=("verdana", "12"),
             bg="white",
             fg="#000000",
            
         )
-        sound_bitrat_label.place(x=470,y=130)
+        self.sound_bitrat_label.place(x=470,y=130)
         
         
-        playlist_type_label = tk.Label(
+        self.playlist_type_label = tk.Label(
             text="Playlist Type:",
             font=("verdana", "12"),
             bg="white",
             fg="#000000",
          
         )
-        playlist_type_label.place(x=470,y=208)
+        self.playlist_type_label.place(x=470,y=208)
+        
+        self.download_type_label = tk.Label(
+            text="Download Progress:",
+            font=("verdana", "12"),
+            bg="white",
+            fg="#000000",
+         
+        )
+        
+        
         
  
         
@@ -580,55 +659,34 @@ class YoutubeDownloadWindow(tk.Tk):
         
         
         #______________________________________ Entry Fields __________________________________# 
-        self.url_field =tk.Entry(  
-            
-       
-            width = 20,  
-            font = ("verdana", "20"),  
-            bg = "#FFFFFF",  
-            fg = "#000000",  
-            highlightthickness=3,
-            highlightcolor="green",
-            relief=tk.GROOVE 
+        self.url_field =ttk.Entry(  
+            width = 30,  
+            font = ("verdana", "13"),  
             )  
-        self.url_field.place(x=118,y=40)
+        self.url_field.place(x=118,y=51)
         
         
-        self.url_sound_field =tk.Entry(   
-            width = 20,  
-            font = ("verdana", "20"),  
-            bg = "#FFFFFF",  
-            fg = "#000000",  
-            highlightthickness=3,
-            highlightcolor="green",
-            relief=tk.GROOVE 
+        self.url_sound_field =ttk.Entry(   
+            width = 30,  
+            font = ("verdana", "13"),  
             )  
-        self.url_sound_field.place(x=118,y=115)
+        self.url_sound_field.place(x=118,y=126)
         
         
-        self.url_playlist_field =tk.Entry(
-            width = 20,  
-            font = ("verdana", "20"),  
-            bg = "#FFFFFF",  
-            fg = "#000000",  
-            highlightthickness=3,
-            highlightcolor="green",
-            relief=tk.GROOVE 
+        self.url_playlist_field =ttk.Entry(
+            width = 30,  
+            font = ("verdana", "13"),  
+           
+        
             )  
-        self.url_playlist_field.place(x=118,y=190)
+        self.url_playlist_field.place(x=118,y=200)
         
         
-        self.des_field = tk.Entry(  
-            width = 20,
-              
-            font = ("verdana", "20"),  
-            bg = "#FFFFFF",  
-            fg = "#000000",  
-            highlightthickness=3,
-            highlightcolor="red",
-            relief = tk.GROOVE  
+        self.des_field = ttk.Entry(  
+            width = 30,  
+            font = ("verdana", "13"),   
             )  
-        self.des_field.place(x=118,y=250)
+        self.des_field.place(x=118,y=260)
         #______________________________________ Entry Fields __________________________________# 
 
          
@@ -677,9 +735,10 @@ class YoutubeDownloadWindow(tk.Tk):
         
         # __________________________________ All Buttons _____________________________#  
         
-        self.style.configure("TButton",font=('calibri',20,'bold'),borderwidth="4")
-        self.style.map("TButton",foreground=[('active','!disabled','green')],
-        background=[('active','black')])
+        self.style.configure("TButton",font =
+               ('calibri', 20, 'bold', 'underline'),borderwidth="2")
+        self.style.map("info.TButton",foreground=[('active','!disabled','green')],
+        background=[('active','green')])
 
         self.download_video_button = ttk.Button(  
             text = "Download Video",  
@@ -687,7 +746,7 @@ class YoutubeDownloadWindow(tk.Tk):
             state="disabled",
             command = self.download_video_thread  
             )  
-        self.download_video_button.place(x=5,y=300)
+        self.download_video_button.place(x=5,y=310)
         
         
         self.download_music_button = ttk.Button( 
@@ -696,45 +755,46 @@ class YoutubeDownloadWindow(tk.Tk):
             state="disabled",
             command = self.download_Sound_thread
             )  
-        self.download_music_button.place(x=240,y=300)
+        self.download_music_button.place(x=240,y=310)
         
         
         self.download_playist_button = ttk.Button(  
             text = "Download Playlist",  
             width = 15, 
             state="disabled",
+            
             command = self.download_Playlist_thread
             )  
-        self.download_playist_button.place(x=470,y=300)
+        self.download_playist_button.place(x=470,y=310)
         
         self.browse_button = ttk.Button(   
             text = "Browse",    
             command = self.browse_folder  
             )  
-        self.browse_button.place(x=470,y=250)
+        self.browse_button.place(x=480,y=260)
         
         
-        about_button = tk.Button(   
-            text = "About Program",  
-            width = 0,  
-            bg = "grey",  
-            bd=0,
-            image=self.img3 ,
-            relief = tk.GROOVE,  
-            command = self.about_program 
-            )  
-        about_button.place(x=620,y=3)
+        # about_button = tk.Button(   
+        #     text = "About Program",  
+        #     width = 0,  
+        #     bg = "white",  
+        #     bd=0,
+        #     image=self.img3 ,
+        #     relief = tk.GROOVE,  
+        #     command = self.about_program 
+        #     )  
+        # about_button.place(x=620,y=3)
         
-        about_git_hub = tk.Button(   
-            text = "About Program",  
-            width = 0,  
-            bg = "grey",  
-            bd=0,
-            image=self.img4 ,
-            relief = tk.GROOVE,  
-            command = self.git_hub
-            )  
-        about_git_hub.place(x=660,y=3)
+        # about_git_hub = tk.Button(   
+        #     text = "About Program",  
+        #     width = 0,  
+        #     bg = "white",  
+        #     bd=0,
+        #     image=self.img4 ,
+        #     relief = tk.GROOVE,  
+        #     command = self.git_hub
+        #     )  
+        # about_git_hub.place(x=660,y=3)
         
         
         self.lock_button = tk.Button(   
@@ -745,13 +805,13 @@ class YoutubeDownloadWindow(tk.Tk):
             relief = tk.GROOVE,  
             command = self.stop_download
             )  
-        self.lock_button.place(x=650,y=250)
+        self.lock_button.place(x=650,y=260)
         
         self.lock_button.configure(image=self.img6)
        
         self.status = tk.Label(self,text="State : Ready",width=0,fg="black",anchor="w",background="white",
                                font="arial 10 ",bd=1,relief="ridge")
-        self.status.place(x=0,y=380,relwidth=1)
+        self.status.place(x=0,y=392,relwidth=1)
         
         
         
