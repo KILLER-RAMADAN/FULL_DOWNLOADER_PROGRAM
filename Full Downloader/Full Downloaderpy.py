@@ -8,8 +8,6 @@ import os
 import yt_dlp
 import webbrowser
 
-
-
 class YoutubeDownloadWindow(tk.Tk):
     
     #___________________________________get res from youtube video_______________________#
